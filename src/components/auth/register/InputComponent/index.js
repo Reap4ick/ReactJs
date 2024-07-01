@@ -108,3 +108,4 @@ const InputComponent = ({ type, label, id, value, onChange, pattern, required })
 };
 
 export default InputComponent;
+// log

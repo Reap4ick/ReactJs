@@ -1,121 +1,145 @@
-import { useState } from 'react';
-import InputComponent from './InputComponent';
+import React, { useState } from "react";
+import * as Yup from 'yup';
+import { validationSchema } from "../../common/validation"; // Імпорт валідаційної схеми
+import TextInput from "../../common/textInput";
+import FileInput from "../../common/fileInput";
+import classNames from 'classnames';
 
-const RegisterForm = () => {
-  const [formData, setFormData] = useState({
-    lastName: '',
-    name: '',
-    phone: '',
-    email: '',
-    photo: '',
-    hobbies: ''
-  });
-
-  const handleChange = (event) => {
-    const { id, value, files } = event.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [id]: files ? files[0] : value
-    }));
+const RegisterPage = () => {
+  const initValue = {
+    firstName: "Вова",
+    lastName: "",
+    phone: "",
+    image: null,
+    birthDate: "", // додано поле для дати народження
   };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    if (event.target.checkValidity()) {
-      const { lastName, name, phone, email, photo, hobbies } = formData;
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const imageDataUrl = reader.result;
-        const user = {
-          lastName,
-          name,
-          phone,
-          email,
-          photo: imageDataUrl,
-          hobbies
-        };
-        const users = JSON.parse(localStorage.getItem('users')) || [];
-        users.push(user);
-        localStorage.setItem('users', JSON.stringify(users));
-        window.location.href = '/';
-      };
-      if (photo) reader.readAsDataURL(photo);
+  const [data, setData] = useState(initValue);
+  const [errors, setErrors] = useState({});
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await validationSchema.validate(data, { abortEarly: false });
+      console.log('Дані валідні:', data);
+      // Відправка даних
+    } catch (err) {
+      const validationErrors = {};
+      err.inner.forEach(error => {
+        validationErrors[error.path] = error.message;
+      });
+      setErrors(validationErrors);
+      console.log('Помилки валідації:', validationErrors);
     }
-    event.target.classList.add('was-validated');
   };
+
+  const onChangeHandler = (e) => {
+    const { name, value } = e.target;
+    setData((prevData) => ({ ...prevData, [name]: value }));
+    validateField(name, value);
+  };
+
+  const onChangeFileHandler = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setData((prevData) => ({ ...prevData, image: file }));
+      validateField('image', file);
+    } else {
+      setData((prevData) => ({ ...prevData, image: null }));
+      validateField('image', null);
+      alert('Оберіть фото');
+    }
+  };
+
+  const validateField = (field, value) => {
+    Yup.reach(validationSchema, field)
+      .validate(value)
+      .then(() => {
+        setErrors((prevErrors) => ({ ...prevErrors, [field]: undefined }));
+      })
+      .catch((err) => {
+        setErrors((prevErrors) => ({ ...prevErrors, [field]: err.message }));
+      });
+  };
+
+  const formFieldClass = (field) =>
+    classNames({
+      'form-control': true, // базовий клас
+      'is-invalid': errors[field], // додатковий клас, якщо є помилка
+    });
 
   return (
-    <div className="container">
-      <h1 className="text-center">Реєстрація користувача</h1>
-      <div className="row">
-        <form className="col-md-6 offset-md-3" id="needs-validation" noValidate onSubmit={handleSubmit}>
-          <InputComponent
-            type="text"
+    <>
+      <h1 className="text-center">Реєстрація</h1>
+      <form onSubmit={handleSubmit} className="col-md-6 offset-md-3">
+        <div className="form-group">
+          <TextInput
             label="Прізвище"
-            id="lastName"
-            value={formData.lastName}
-            onChange={handleChange}
-            pattern="^[a-zA-Z]+$|^[\u0400-\u04FF]+$"
-            required
-          />
-          <InputComponent
+            field="lastName"
             type="text"
-            label="Ім'я"
-            id="name"
-            value={formData.name}
-            onChange={handleChange}
-            pattern="^[a-zA-Z]+$|^[\u0400-\u04FF]+$"
-            required
+            className={formFieldClass('lastName')}
+            value={data.lastName}
+            onChange={onChangeHandler}
+            error={errors.lastName}
           />
-          <InputComponent
-            type="tel"
-            label="Телефон"
-            id="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            pattern="^\+\d{2}\(\d{3}\) \d{2}-\d{2}-\d{3}$"
-            required
-          />
-          <InputComponent
-            type="email"
-            label="Електронна пошта"
-            id="email"
-            value={formData.email}
-            onChange={handleChange}
-            pattern="^[^ ]+@[^ ]+\.[a-z]{2,3}$"
-            required
-          />
-          <InputComponent
-            type="file"
-            label="Фото"
-            id="photo"
-            value={formData.photo}
-            onChange={handleChange}
-            required
-          />
-          <InputComponent
-            type="textarea"
-            label="Хобі"
-            id="hobbies"
-            value={formData.hobbies}
-            onChange={handleChange}
-            required
-          />
-          <div className="d-flex justify-content-center">
-            <button type="submit" className="btn btn-success me-2">Реєстрація</button>
-            <button type="reset" className="btn btn-primary" onClick={() => setFormData({
-              lastName: '',
-              name: '',
-              phone: '',
-              email: '',
-              photo: '',
-              hobbies: ''
-            })}>Скасувать</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
+          {errors.lastName && <div className="invalid-feedback">{errors.lastName}</div>}
+        </div>
 
-export default RegisterForm;
+        <div className="form-group">
+          <TextInput
+            label="Ім'я"
+            field="firstName"
+            type="text"
+            className={formFieldClass('firstName')}
+            value={data.firstName}
+            onChange={onChangeHandler}
+            error={errors.firstName}
+          />
+          {errors.firstName && <div className="invalid-feedback">{errors.firstName}</div>}
+        </div>
+
+        <div className="form-group">
+          <TextInput
+            label="Телефон"
+            field="phone"
+            type="text"
+            className={formFieldClass('phone')}
+            value={data.phone}
+            onChange={onChangeHandler}
+            error={errors.phone}
+          />
+          {errors.phone && <div className="invalid-feedback">{errors.phone}</div>}
+        </div>
+
+        <div className="form-group">
+          <TextInput
+            label="Дата народження"
+            field="birthDate"
+            type="date"
+            className={formFieldClass('birthDate')}
+            value={data.birthDate}
+            onChange={onChangeHandler}
+            error={errors.birthDate}
+          />
+          {errors.birthDate && <div className="invalid-feedback">{errors.birthDate}</div>}
+        </div>
+
+        <div className="form-group">
+          <FileInput
+            label="Фото"
+            field="image"
+            className={formFieldClass('image')}
+            value={data.image}
+            onChange={onChangeFileHandler}
+            error={errors.image}
+          />
+          {errors.image && <div className="invalid-feedback">{errors.image}</div>}
+        </div>
+
+        <button type="submit" className="btn btn-primary">Реєструватися</button>
+      </form>
+    </>
+  );
+}
+
+export default RegisterPage;
