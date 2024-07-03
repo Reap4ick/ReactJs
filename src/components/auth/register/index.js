@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import * as Yup from 'yup';
-import { validationSchema } from "../../common/validation"; // Імпорт валідаційної схеми
+import { validationSchema } from "../../common/validation";
 import TextInput from "../../common/textInput";
 import FileInput from "../../common/fileInput";
 import classNames from 'classnames';
@@ -11,7 +11,7 @@ const RegisterPage = () => {
     lastName: "",
     phone: "",
     image: null,
-    birthDate: "", // додано поле для дати народження
+    birthDate: "",
   };
 
   const [data, setData] = useState(initValue);
@@ -22,7 +22,6 @@ const RegisterPage = () => {
     try {
       await validationSchema.validate(data, { abortEarly: false });
       console.log('Дані валідні:', data);
-      // Відправка даних
     } catch (err) {
       const validationErrors = {};
       err.inner.forEach(error => {
@@ -64,8 +63,8 @@ const RegisterPage = () => {
 
   const formFieldClass = (field) =>
     classNames({
-      'form-control': true, // базовий клас
-      'is-invalid': errors[field], // додатковий клас, якщо є помилка
+      'form-control': true,
+      'is-invalid': errors[field],
     });
 
   return (

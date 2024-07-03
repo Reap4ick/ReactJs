@@ -27,18 +27,18 @@ export const validationSchema = Yup.object().shape({
 
 const formFieldClass = (field, errors) =>
   classNames({
-    'form-control': true, // базовий клас
-    'is-invalid': errors[field], // додатковий клас, якщо є помилка
+    'form-control': true,
+    'is-invalid': errors[field], 
   });
 
 const errors = {};
 
 const formData = {
-  image: null, // image має бути об'єктом файлу
+  image: null, 
   phone: '',
   firstName: '',
   lastName: '',
-  birthDate: '', // додано поле для дати народження
+  birthDate: '', 
 };
 
 validationSchema
