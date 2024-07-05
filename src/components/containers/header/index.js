@@ -15,6 +15,12 @@ const MainHeader = () => {
                                 <li className="nav-item">
                                     <Link className="nav-link active" aria-current="page" to="/">Home</Link>
                                 </li>
+                                <li className="nav-item">
+                                    <Link className="nav-link" aria-current="page" to="/pizza/create">Додати</Link>
+                                </li>
+                                <li className="nav-item">
+                                    <Link className="nav-link active" to="/manyimages">Images</Link>
+                                </li>
                             </ul>
 
                             <ul className="navbar-nav ">

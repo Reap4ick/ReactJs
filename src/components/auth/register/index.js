@@ -1,144 +1,94 @@
-import React, { useState } from "react";
-import * as Yup from 'yup';
-import { validationSchema } from "../../common/validation";
 import TextInput from "../../common/textInput";
+import {useState} from "react";
 import FileInput from "../../common/fileInput";
-import classNames from 'classnames';
+import * as yup from "yup";
+import {useFormik} from "formik";
 
 const RegisterPage = () => {
-  const initValue = {
-    firstName: "Вова",
-    lastName: "",
-    phone: "",
-    image: null,
-    birthDate: "",
-  };
 
-  const [data, setData] = useState(initValue);
-  const [errors, setErrors] = useState({});
+    const initValue = {
+        firstName: "Вова",
+        lastName: "",
+        phone: "",
+        image: null
+    };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await validationSchema.validate(data, { abortEarly: false });
-      console.log('Дані валідні:', data);
-    } catch (err) {
-      const validationErrors = {};
-      err.inner.forEach(error => {
-        validationErrors[error.path] = error.message;
-      });
-      setErrors(validationErrors);
-      console.log('Помилки валідації:', validationErrors);
-    }
-  };
-
-  const onChangeHandler = (e) => {
-    const { name, value } = e.target;
-    setData((prevData) => ({ ...prevData, [name]: value }));
-    validateField(name, value);
-  };
-
-  const onChangeFileHandler = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setData((prevData) => ({ ...prevData, image: file }));
-      validateField('image', file);
-    } else {
-      setData((prevData) => ({ ...prevData, image: null }));
-      validateField('image', null);
-      alert('Оберіть фото');
-    }
-  };
-
-  const validateField = (field, value) => {
-    Yup.reach(validationSchema, field)
-      .validate(value)
-      .then(() => {
-        setErrors((prevErrors) => ({ ...prevErrors, [field]: undefined }));
-      })
-      .catch((err) => {
-        setErrors((prevErrors) => ({ ...prevErrors, [field]: err.message }));
-      });
-  };
-
-  const formFieldClass = (field) =>
-    classNames({
-      'form-control': true,
-      'is-invalid': errors[field],
+    const registerSchema = yup.object({
+        lastName: yup.string()
+            .required("Вкажіть прізвище"),
+        firstName: yup.string()
+            .required("Вкажіть ім'я"),
+        phone: yup.string()
+            .required("Вкажіть телефон"),
+        image: yup.mixed()
+            .required('Картинка є обов\'язковою')
+            .test(
+                'fileType',
+                'Неправильний формат файлу',
+                value => value && ['image/jpeg', 'image/png', 'image/webp'].includes(value?.type)
+            ),
     });
 
-  return (
-    <>
-      <h1 className="text-center">Реєстрація</h1>
-      <form onSubmit={handleSubmit} className="col-md-6 offset-md-3">
-        <div className="form-group">
-          <TextInput
-            label="Прізвище"
-            field="lastName"
-            type="text"
-            className={formFieldClass('lastName')}
-            value={data.lastName}
-            onChange={onChangeHandler}
-            error={errors.lastName}
-          />
-          {errors.lastName && <div className="invalid-feedback">{errors.lastName}</div>}
-        </div>
+    const handleFormikSubmit = (values) => {
+        //e.preventDefault();
+        console.log("Submit form ", values);
+    }
 
-        <div className="form-group">
-          <TextInput
-            label="Ім'я"
-            field="firstName"
-            type="text"
-            className={formFieldClass('firstName')}
-            value={data.firstName}
-            onChange={onChangeHandler}
-            error={errors.firstName}
-          />
-          {errors.firstName && <div className="invalid-feedback">{errors.firstName}</div>}
-        </div>
+    const formik = useFormik({
+       initialValues: initValue,
+        onSubmit: handleFormikSubmit,
+        validationSchema: registerSchema
+    });
 
-        <div className="form-group">
-          <TextInput
-            label="Телефон"
-            field="phone"
-            type="text"
-            className={formFieldClass('phone')}
-            value={data.phone}
-            onChange={onChangeHandler}
-            error={errors.phone}
-          />
-          {errors.phone && <div className="invalid-feedback">{errors.phone}</div>}
-        </div>
+    const {values, touched, errors,
+        handleSubmit, handleChange, setFieldValue} = formik;
 
-        <div className="form-group">
-          <TextInput
-            label="Дата народження"
-            field="birthDate"
-            type="date"
-            className={formFieldClass('birthDate')}
-            value={data.birthDate}
-            onChange={onChangeHandler}
-            error={errors.birthDate}
-          />
-          {errors.birthDate && <div className="invalid-feedback">{errors.birthDate}</div>}
-        </div>
+    const onChangeFileHandler = (e) => {
+        console.log("onChange", e.target.files);
+        const file = e.target.files[0];
+        if (file) {
+            setFieldValue(e.target.name, file);
+            //setData({...data, [e.target.name]: file});
+        }
+        else {
+            setFieldValue(e.target.name, null);
+            //setData({...data, [e.target.name]: null});
+            //alert("Оберіть фото");
+        }
+    }
 
-        <div className="form-group">
-          <FileInput
-            label="Фото"
-            field="image"
-            className={formFieldClass('image')}
-            value={data.image}
-            onChange={onChangeFileHandler}
-            error={errors.image}
-          />
-          {errors.image && <div className="invalid-feedback">{errors.image}</div>}
-        </div>
+    console.log("errors ", errors);
+    return (
+        <>
+            <h1 className={"text-center"}>Реєстрація</h1>
+            <form onSubmit={handleSubmit} className={"col-md-6 offset-md-3"}>
+                <TextInput label={"Прізвище"} field={"lastName"} type={"text"}
+                           value={values.lastName}
+                           error={errors.lastName}
+                           onChange={handleChange}/>
 
-        <button type="submit" className="btn btn-primary">Реєструватися</button>
-      </form>
-    </>
-  );
+                <TextInput label={"Ім'я"} field={"firstName"} type={"text"}
+                           value={values.firstName}
+                           error={errors.firstName}
+                           onChange={handleChange}/>
+
+                <TextInput label={"Телефон"} field={"phone"} type={"text"}
+                           value={values.phone}
+                           error={errors.phone}
+                           onChange={handleChange}/>
+
+                <FileInput label={"Фото"} field={"image"}
+                           value={values.image}
+                           error={errors.image}
+                           onChange={onChangeFileHandler}/>
+
+                <button type="submit" className="btn btn-primary">Реєструватися</button>
+
+            </form>
+        </>
+    )
 }
 
 export default RegisterPage;
+
+//register

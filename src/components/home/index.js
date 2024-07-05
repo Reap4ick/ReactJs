@@ -65,3 +65,5 @@ const HomePage = () => {
 }
 
 export default HomePage;
+
+//register
