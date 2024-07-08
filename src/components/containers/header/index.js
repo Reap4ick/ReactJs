@@ -1,6 +1,12 @@
 import {Link} from "react-router-dom";
+import {useContext} from "react";
+import {AuthContext} from "../../../authContext";
 
 const MainHeader = () => {
+
+    const {isAuth, user, logout} = useContext(AuthContext);
+    //console.log("isAuth, user", isAuth, user);
+
     return (
         <>
             <header data-bs-theme="dark">
@@ -18,19 +24,32 @@ const MainHeader = () => {
                                 <li className="nav-item">
                                     <Link className="nav-link" aria-current="page" to="/pizza/create">Додати</Link>
                                 </li>
-                                <li className="nav-item">
-                                    <Link className="nav-link active" to="/manyimages">Images</Link>
-                                </li>
                             </ul>
 
-                            <ul className="navbar-nav ">
-                                <li className="nav-item">
-                                    <a className="nav-link" aria-current="page" href="#">Вхід</a>
-                                </li>
-                                <li className="nav-item">
-                                    <Link className="nav-link" to="/register">Реєстрація</Link>
-                                </li>
-                            </ul>
+                            {isAuth ?
+                                <ul className="navbar-nav ">
+                                    <li className="nav-item">
+                                        <a className="nav-link" aria-current="page" href="/profile">{user.name}</a>
+                                    </li>
+                                    <li className="nav-item">
+                                        <Link className="nav-link" to="/logout" onClick={(e)=>
+                                        {
+                                            e.preventDefault();
+                                            logout();
+                                        }}>Вихід</Link>
+                                    </li>
+                                </ul>
+                                :
+                                <ul className="navbar-nav ">
+                                    <li className="nav-item">
+                                        <a className="nav-link" aria-current="page" href="#">Вхід</a>
+                                    </li>
+                                    <li className="nav-item">
+                                        <Link className="nav-link" to="/register">Реєстрація</Link>
+                                    </li>
+                                </ul>
+                            }
+
                         </div>
                     </div>
                 </nav>

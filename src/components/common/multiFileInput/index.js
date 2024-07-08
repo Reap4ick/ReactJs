@@ -1,3 +1,4 @@
+
 import plusImage from "../../../assets/images/plus.jpg";
 import classNames from "classnames";
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
@@ -5,7 +6,6 @@ import './style.css';
 import { useState } from "react";
 
 const MultiFileInput = ({ label, field, value, error, onChange }) => {
-
     const [images, setImages] = useState([]);
     const [filesList, setFilesList] = useState([]);
 
@@ -19,9 +19,9 @@ const MultiFileInput = ({ label, field, value, error, onChange }) => {
     };
 
     const removeImage = (index) => {
+        setImages(images.filter((_, i) => i !== index));
         const updatedFilesList = filesList.filter((_, i) => i !== index);
         setFilesList(updatedFilesList);
-        setImages(images.filter((_, i) => i !== index));
         onChange(updatedFilesList);
     };
 
@@ -30,75 +30,79 @@ const MultiFileInput = ({ label, field, value, error, onChange }) => {
             return;
         }
         const reorderedImages = Array.from(images);
-        const reorderedFilesList = Array.from(filesList);
         const [movedImage] = reorderedImages.splice(result.source.index, 1);
-        const [movedFile] = reorderedFilesList.splice(result.source.index, 1);
-
         reorderedImages.splice(result.destination.index, 0, movedImage);
-        reorderedFilesList.splice(result.destination.index, 0, movedFile);
+
+        const reorderedFiles = Array.from(filesList);
+        const [movedFile] = reorderedFiles.splice(result.source.index, 1);
+        reorderedFiles.splice(result.destination.index, 0, movedFile);
 
         setImages(reorderedImages);
-        setFilesList(reorderedFilesList);
-        onChange(reorderedFilesList);
+        setFilesList(reorderedFiles);
+        onChange(reorderedFiles);
     };
 
-    return (
-        <>
-            <div className="mb-3">
-                <div className="row">
-                    <DragDropContext onDragEnd={onDragEnd}>
-                        <Droppable droppableId="images" direction={"horizontal"}>
-                            {(provided) => (
-                                <div
-                                    className={"row"}
-                                    {...provided.droppableProps}
-                                    ref={provided.innerRef}
-                                >
-                                    {images.map((image, index) => (
-                                        <Draggable key={image} draggableId={image} index={index}>
-                                            {(provided) => (
-                                                <div
-                                                    className="col-md-3 image-preview"
-                                                    ref={provided.innerRef}
-                                                    {...provided.draggableProps}
-                                                    {...provided.dragHandleProps}
-                                                >
-                                                    <img src={image} className={"img-fluid"} alt={`Preview ${index}`} />
-                                                    <button onClick={() => removeImage(index)} className="remove-button">X
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </Draggable>
-                                    ))}
-
-                                    <div className="col-md-3">
-                                        <label htmlFor={field} className="form-label">
-                                            <img src={plusImage} alt="" className={"img-fluid"} />
-                                        </label>
-                                        <input type="file"
-                                            className={classNames("d-none")}
-                                            id={field}
-                                            name={field}
-                                            multiple={true}
-                                            onChange={handleFileChange}
-                                            aria-describedby="emailHelp" />
-                                    </div>
-                                    {provided.placeholder}
-                                </div>
-                            )}
-                        </Droppable>
-                    </DragDropContext>
-
-                    {
-                        error &&
-                        <div className="alert alert-danger">
-                            {error}
+    const handleShuffle = () => {
+        const shuffledFiles = [...filesList];
+        for (let i = shuffledFiles.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffledFiles[i], shuffledFiles[j]] = [shuffledFiles[j], shuffledFiles[i]];
+        }
+        const shuffledImages = shuffledFiles.map(file => URL.createObjectURL(file));
+        setFilesList(shuffledFiles);
+        setImages(shuffledImages);
+        onChange(shuffledFiles);
+    };
+return (
+    <div className="mb-3">
+        <div className="row">
+            <DragDropContext onDragEnd={onDragEnd}>
+                <Droppable droppableId="images" direction={"horizontal"}>
+                    {(provided) => (
+                        <div
+                            className="row"
+                            {...provided.droppableProps}
+                            ref={provided.innerRef}
+                        >
+                            {images.map((image, index) => (
+                                <Draggable key={image} draggableId={image} index={index}>
+                                    {(provided) => (
+                                        <div
+                                            className="col-md-3 image-preview"
+                                            ref={provided.innerRef}
+                                            {...provided.draggableProps}
+                                            {...provided.dragHandleProps}
+                                        >
+                                            <img src={image} className="img-fluid" alt={`Preview ${index}`} />
+                                            <button onClick={() => removeImage(index)} className="remove-button">X</button>
+                                        </div>
+                                    )}
+                                </Draggable>
+                            ))}
+                            <div className="col-md-3">
+                                <label htmlFor={field} className="form-label">
+                                    <img src={plusImage} alt="" className="img-fluid" />
+                                </label>
+                                <input type="file"
+                                       className={classNames("d-none")}
+                                       id={field}
+                                       name={field}
+                                       multiple={true}
+                                       onChange={handleFileChange}
+                                       aria-describedby="emailHelp" />
+                            </div>
+                            {provided.placeholder}
                         </div>
-                    }
-                </div>
-            </div>
-        </>
-    );
+                    )}
+                </Droppable>
+            </DragDropContext>
+
+            <button type="button" onClick={handleShuffle} className="btn btn-secondary mt-2">Shuffle Files</button>
+
+            {error && <div className="alert alert-danger mt-2">{error}</div>}
+        </div>
+    </div>
+);
 }
 
 export default MultiFileInput;
