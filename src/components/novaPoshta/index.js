@@ -7,7 +7,7 @@ import "leaflet.markercluster";
 import axios from "axios";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
-import "bootstrap/dist/css/bootstrap.min.css"; // Bootstrap styles
+import "bootstrap/dist/css/bootstrap.min.css"; 
 
 const NovaPoshtaPage = () => {
   const [warehouses, setWarehouses] = useState([]);
@@ -16,9 +16,9 @@ const NovaPoshtaPage = () => {
   const [cities, setCities] = useState([]);
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedWarehouse, setSelectedWarehouse] = useState("");
-  const [map, setMap] = useState(null); // State to hold map instance
+  const [map, setMap] = useState(null); 
 
-  // Define default icon
+
   const defaultIcon = L.icon({
     iconUrl: markerIcon,
     shadowUrl: markerShadow,
@@ -111,14 +111,14 @@ const NovaPoshtaPage = () => {
   useEffect(() => {
     if (!map) return;
 
-    // Clear existing markers
+
     map.eachLayer((layer) => {
       if (layer instanceof L.Marker || layer instanceof L.MarkerCluster) {
         map.removeLayer(layer);
       }
     });
 
-    // Add new markers
+
     const markers = L.markerClusterGroup();
     warehouses.forEach((warehouse) => {
       if (warehouse.Latitude && warehouse.Longitude) {
@@ -130,7 +130,7 @@ const NovaPoshtaPage = () => {
     });
     map.addLayer(markers);
 
-    // Fit map to markers bounds
+
     if (warehouses.length > 0) {
       const bounds = markers.getBounds();
       map.fitBounds(bounds);
@@ -149,6 +149,15 @@ const NovaPoshtaPage = () => {
       mapInstance.remove();
     };
   }, []);
+
+  useEffect(() => {
+    if (!map || !selectedWarehouse) return;
+
+    const warehouse = warehouses.find((w) => w.Description === selectedWarehouse);
+    if (warehouse && warehouse.Latitude && warehouse.Longitude) {
+      map.setView([warehouse.Latitude, warehouse.Longitude], 15);
+    }
+  }, [map, selectedWarehouse, warehouses]);
 
   const handleRegionChange = (event) => {
     const regionRef = event.target.value;
