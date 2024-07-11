@@ -1,221 +1,204 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import axios from "axios";
+import Select from 'react-select';
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
-import L from "leaflet";
-import "leaflet.markercluster";
-import axios from "axios";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-import "bootstrap/dist/css/bootstrap.min.css"; 
+import "leaflet.markercluster/dist/leaflet.markercluster.js";
+import "leaflet.awesome-markers/dist/leaflet.awesome-markers.css";
+import "leaflet.awesome-markers";
 
 const NovaPoshtaPage = () => {
-  const [warehouses, setWarehouses] = useState([]);
-  const [regions, setRegions] = useState([]);
-  const [selectedRegion, setSelectedRegion] = useState("");
-  const [cities, setCities] = useState([]);
-  const [selectedCity, setSelectedCity] = useState("");
-  const [selectedWarehouse, setSelectedWarehouse] = useState("");
-  const [map, setMap] = useState(null); 
+    const apiKey = "63aa362a44e812e38243bd8fb803b606";
+    const [areas, setAreas] = useState([]);
+    const [cities, setCities] = useState([]);
+    const [warehouses, setWarehouses] = useState([]);
 
+    const [selectedArea, setSelectedArea] = useState(null);
+    const [selectedCity, setSelectedCity] = useState(null);
+    const [selectedWarehouse, setSelectedWarehouse] = useState(null);
 
-  const defaultIcon = L.icon({
-    iconUrl: markerIcon,
-    shadowUrl: markerShadow,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41],
-  });
+    const mapRef = useRef(null);
+    const markersRef = useRef([]);
 
-  useEffect(() => {
-    const fetchRegions = async () => {
-      const apiKey = "63aa362a44e812e38243bd8fb803b606";
-      const model = {
-        apiKey: apiKey,
-        modelName: "Address",
-        calledMethod: "getAreas",
-        methodProperties: {},
-      };
+    useEffect(() => {
+        displayMap([]);
+    }, []);
 
-      try {
-        const response = await axios.post("https://api.novaposhta.ua/v2.0/json/", model);
-        setRegions(response.data.data);
-      } catch (error) {
-        console.error("Помилка при отриманні областей: ", error);
-      }
-    };
+    useEffect(() => {
+        const fetchAreas = async () => {
+            const areasData = await getAreas();
+            setAreas(areasData);
+        }
+        fetchAreas();
+    }, []);
 
-    fetchRegions();
-  }, []);
+    useEffect(() => {
+        if (selectedArea) {
+            const fetchCities = async () => {
+                const citiesData = await getCities(selectedArea.Ref);
+                setCities(citiesData);
+            }
+            fetchCities();
+        }
+    }, [selectedArea]);
 
-  useEffect(() => {
-    const fetchCities = async (regionRef) => {
-      if (!regionRef) {
-        setCities([]);
-        return;
-      }
+    useEffect(() => {
+        if (selectedCity) {
+            const fetchWarehouses = async () => {
+                const warehousesData = await getWarehouses(selectedCity.Ref);
+                setWarehouses(warehousesData);
+                displayMap(warehousesData, selectedCity, selectedWarehouse);
+            }
+            fetchWarehouses();
+        }
+    }, [selectedCity, selectedWarehouse]);
 
-      const apiKey = "63aa362a44e812e38243bd8fb803b606";
-      const model = {
-        apiKey: apiKey,
-        modelName: "Address",
-        calledMethod: "getCities",
-        methodProperties: {
-          AreaRef: regionRef,
-        },
-      };
-
-      try {
-        const response = await axios.post("https://api.novaposhta.ua/v2.0/json/", model);
-        setCities(response.data.data);
-      } catch (error) {
-        console.error("Помилка при отриманні міст: ", error);
-      }
-    };
-
-    fetchCities(selectedRegion);
-  }, [selectedRegion]);
-
-  useEffect(() => {
-    const fetchWarehouses = async (cityDescription) => {
-      if (!cityDescription) {
-        setWarehouses([]);
-        return;
-      }
-
-      const apiKey = "63aa362a44e812e38243bd8fb803b606";
-      const model = {
-        apiKey: apiKey,
-        modelName: "AddressGeneral",
-        calledMethod: "getWarehouses",
-        methodProperties: {
-          Language: "ua",
-          CityName: cityDescription,
-        },
-      };
-
-      try {
-        const response = await axios.post("https://api.novaposhta.ua/v2.0/json/", model);
-        setWarehouses(response.data.data);
-        console.log("Вибране місто: ", cityDescription);
-        console.log("Отримані відділення та поштомати для вибраного міста: ", response.data.data);
-      } catch (error) {
-        console.error("Помилка при отриманні відділень та поштоматів: ", error);
-      }
-    };
-
-    fetchWarehouses(selectedCity);
-  }, [selectedCity]);
-
-  useEffect(() => {
-    if (!map) return;
-
-
-    map.eachLayer((layer) => {
-      if (layer instanceof L.Marker || layer instanceof L.MarkerCluster) {
-        map.removeLayer(layer);
-      }
-    });
-
-
-    const markers = L.markerClusterGroup();
-    warehouses.forEach((warehouse) => {
-      if (warehouse.Latitude && warehouse.Longitude) {
-        const marker = L.marker([warehouse.Latitude, warehouse.Longitude], { icon: defaultIcon }).bindPopup(
-          warehouse.Description
-        );
-        markers.addLayer(marker);
-      }
-    });
-    map.addLayer(markers);
-
-
-    if (warehouses.length > 0) {
-      const bounds = markers.getBounds();
-      map.fitBounds(bounds);
+    const getAreas = async () => {
+        try {
+            const response = await axios.post('https://api.novaposhta.ua/v2.0/json/', {
+                apiKey: apiKey,
+                modelName: "Address",
+                calledMethod: "getAreas"
+            });
+            return response.data.data;
+        } catch (error) {
+            console.error("Error fetching areas:", error);
+        }
     }
-  }, [map, warehouses]);
 
-  useEffect(() => {
-    const mapInstance = L.map("map").setView([49.8397, 24.0297], 12);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(mapInstance);
-
-    setMap(mapInstance);
-
-    return () => {
-      mapInstance.remove();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!map || !selectedWarehouse) return;
-
-    const warehouse = warehouses.find((w) => w.Description === selectedWarehouse);
-    if (warehouse && warehouse.Latitude && warehouse.Longitude) {
-      map.setView([warehouse.Latitude, warehouse.Longitude], 15);
+    const getCities = async (areaRef) => {
+        try {
+            const response = await axios.post('https://api.novaposhta.ua/v2.0/json/', {
+                apiKey: apiKey,
+                modelName: "Address",
+                calledMethod: "getCities",
+                methodProperties: {
+                    AreaRef: areaRef
+                }
+            });
+            return response.data.data;
+        } catch (error) {
+            console.error("Error fetching cities:", error);
+        }
     }
-  }, [map, selectedWarehouse, warehouses]);
 
-  const handleRegionChange = (event) => {
-    const regionRef = event.target.value;
-    setSelectedRegion(regionRef);
-    setSelectedCity("");
-    setSelectedWarehouse("");
-  };
+    const getWarehouses = async (cityRef) => {
+        try {
+            const response = await axios.post('https://api.novaposhta.ua/v2.0/json/', {
+                apiKey: apiKey,
+                modelName: "AddressGeneral",
+                calledMethod: "getWarehouses",
+                methodProperties: {
+                    CityRef: cityRef
+                }
+            });
+            return response.data.data;
+        } catch (error) {
+            console.error("Error fetching warehouses:", error);
+        }
+    }
 
-  const handleCityChange = (event) => {
-    const cityDescription = event.target.value;
-    setSelectedCity(cityDescription);
-    setSelectedWarehouse("");
-  };
+    const displayMap = (warehouses, selectedCity, selectedWarehouse) => {
+        if (mapRef.current) {
+            mapRef.current.remove();
+        }
 
-  const handleWarehouseChange = (event) => {
-    const warehouseDescription = event.target.value;
-    setSelectedWarehouse(warehouseDescription);
-  };
+        const map = L.map('map').setView([48.3794, 31.1656], 6);
+        mapRef.current = map;
 
-  return (
-    <div className="container">
-      <h1>Отримання даних із Нової Пошти</h1>
-      <div className="mb-3">
-        <label htmlFor="regionSelect" className="form-label">Область:</label>
-        <select id="regionSelect" className="form-select" onChange={handleRegionChange} value={selectedRegion}>
-          <option value="">Оберіть область</option>
-          {regions.map((region) => (
-            <option key={region.Ref} value={region.Ref}>
-              {region.Description}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="mb-3">
-        <label htmlFor="citySelect" className="form-label">Місто:</label>
-        <select id="citySelect" className="form-select" onChange={handleCityChange} value={selectedCity}>
-          <option value="">Оберіть місто</option>
-          {cities.map((city) => (
-            <option key={city.Ref} value={city.Description}>
-              {city.Description}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="mb-3">
-        <label htmlFor="warehouseSelect" className="form-label">Відділення або поштомат:</label>
-        <select id="warehouseSelect" className="form-select" onChange={handleWarehouseChange} value={selectedWarehouse}>
-          <option value="">Оберіть відділення або поштомат</option>
-          {warehouses.map((warehouse) => (
-            <option key={warehouse.Ref} value={warehouse.Description}>
-              {warehouse.Description}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div id="map" style={{ height: "600px", width: "100%" }}></div>
-    </div>
-  );
-};
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+        const markers = L.markerClusterGroup();
+
+        warehouses.forEach(warehouse => {
+            const statusEmoji = warehouse.WarehouseStatus === 'Working' ? "🟢" : "🔴";
+            const popupContent = `<b>${warehouse.Description}</b><br>
+                           <br><strong>Address:</strong> ${warehouse.ShortAddress}<br>
+                           <strong>Status:</strong> ${warehouse.WarehouseStatus} ${statusEmoji}`;
+
+            const marker = L.marker([warehouse.Latitude, warehouse.Longitude], {
+                icon: L.AwesomeMarkers.icon({
+                    markerColor: "red",
+                })
+            }).bindPopup(popupContent);
+
+            markers.addLayer(marker);
+            markersRef.current.push(marker);
+
+            if (selectedWarehouse && selectedWarehouse.Ref === warehouse.Ref) {
+                if (warehouse.Latitude && warehouse.Longitude) {
+                    map.setView([warehouse.Latitude, warehouse.Longitude], 18);
+                }
+            }
+        });
+
+
+        if (selectedCity && !selectedWarehouse) {
+            const city = cities.find(city => city.Ref === selectedCity.Ref);
+            if (city && city.Latitude && city.Longitude) {
+                map.setView([city.Latitude, city.Longitude], 10);
+            }
+        }
+
+        map.addLayer(markers);
+    }
+
+    return (
+        <>
+            <h1>Отримання даних із нової пошти</h1>
+
+            <div className="primary-button mt-4">
+                <em>Select Area:</em>
+                <Select
+                    value={selectedArea}
+                    onChange={(selectedOption) => {
+                        setSelectedArea(selectedOption);
+                        setSelectedCity(null);
+                        setSelectedWarehouse(null);
+                    }}
+                    getOptionLabel={option => option.Description}
+                    getOptionValue={option => option.Ref}
+                    options={areas}
+                />
+
+                {selectedArea && (
+                    <div style={{ marginLeft: '20px' }}>
+                        <em>Select City:</em>
+                        <Select
+                            value={selectedCity}
+                            onChange={(selectedOption) => {
+                                setSelectedCity(selectedOption);
+                                setSelectedWarehouse(null);
+                            }}
+                            getOptionLabel={option => option.Description}
+                            getOptionValue={option => option.Ref}
+                            options={cities}
+                        />
+                    </div>
+                )}
+
+                {selectedCity && (
+                    <div style={{ marginLeft: '20px' }}>
+                        <em>Select Warehouse:</em>
+                        <Select
+                            value={selectedWarehouse}
+                            onChange={(selectedOption) => setSelectedWarehouse(selectedOption)}
+                            getOptionLabel={option => option.Description}
+                            getOptionValue={option => option.Ref}
+                            options={warehouses}
+                        />
+                    </div>
+                )}
+
+            </div>
+
+            <div id="map" style={{ height: "490px", marginTop: "20px", zIndex: 0 }}></div>
+        </>
+    )
+}
 
 export default NovaPoshtaPage;
