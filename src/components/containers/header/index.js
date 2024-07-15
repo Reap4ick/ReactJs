@@ -1,11 +1,14 @@
 import {Link} from "react-router-dom";
 import {useContext} from "react";
 import {AuthContext} from "../../../authContext";
+import {useSelector} from "react-redux";
 
 const MainHeader = () => {
 
     const {isAuth, user, logout} = useContext(AuthContext);
     //console.log("isAuth, user", isAuth, user);
+
+    const count = useSelector((state) => state.counter.value);
 
     return (
         <>
@@ -26,6 +29,10 @@ const MainHeader = () => {
                                 </li>
                                 <li className="nav-item">
                                     <Link className="nav-link" aria-current="page" to="/novaPoshta">Нова пошта</Link>
+                                </li>
+
+                                <li className="nav-item">
+                                    <Link className="nav-link" aria-current="page" to="/counter">Redux</Link>
                                 </li>
                             </ul>
 
